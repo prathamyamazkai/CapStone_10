@@ -1,62 +1,43 @@
+﻿using Microsoft.EntityFrameworkCore;
+using LocalBusiness.ProductAPI.Data;
 
-using System.Text;
-using LocalBusiness.AuthAPI.Data;
-using LocalBusiness.AuthAPI.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+var builder = WebApplication.CreateSlimBuilder(args);
 
-namespace LocalBusiness.AuthAPI
+// ➕ Add services
+builder.Services.AddControllers(); // Enables support for controllers
+
+// 📦 Add Swagger for API testing
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// 🔗 Connect to SQL Server
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// 🛡️ Add authentication (for future JWT setup)
+// builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+//        .AddJwtBearer(options => { /* configure later */ });
+
+// ⚙️ Add authorization (optional for now)
+builder.Services.AddAuthorization();
+
+var app = builder.Build();
+
+// 🚀 Use Swagger in development
+if (app.Environment.IsDevelopment())
 {
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            var builder = WebApplication.CreateBuilder(args);
-
-            builder.Services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-            builder.Services.AddScoped<TokenService>();
-
-            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(options =>
-                {
-                    var key = builder.Configuration["Jwt:Key"];
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuer = true,
-                        ValidateAudience = true,
-                        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                        ValidAudience = builder.Configuration["Jwt:Audience"],
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
-                    };
-                });
-
-            // Add services to the container.
-
-            builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
-
-            var app = builder.Build();
-
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
-
-            app.UseHttpsRedirection();
-
-            app.UseAuthorization();
-
-
-            app.MapControllers();
-
-            app.Run();
-        }
-    }
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
+
+// ⛓️ HTTPS redirection
+app.UseHttpsRedirection();
+
+// 🔐 Authentication & Authorization
+// app.UseAuthentication(); // Uncomment when JWT is set up
+app.UseAuthorization();
+
+// 🎯 Map controller routes
+app.MapControllers();
+
+app.Run();
